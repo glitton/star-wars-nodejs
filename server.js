@@ -1,40 +1,53 @@
 // require("dotenv").config();
 const MongoClient = require("mongodb").MongoClient;
-const quotesDb = require("./models/Quotes");
+// const quotesDb = require("./models/Quotes");
 const express = require("express");
 const bodyParser = require("body-parser");
 const app = express();
 const router = express.Router();
 
 //mongodb
-const url = "mongodb://127.0.0.1:27017";
-const dbName = "star-wars";
-let db;
+// const url = "mongodb://127.0.0.1:27017";
+// const dbName = "star-wars";
+// let db;
 
-MongoClient.connect(url, { useNewUrlParser: true }, (err, client) => {
-  if (err) return console.log(err);
-});
+const connectionString =
+  "mongodb+srv://glcodeworks:j@vA$c8!p7@cluster0-nzp7z.mongodb.net/test?retryWrites=true&w=majority";
 
-db = client.db(dbName);
-console.log(`Connected MongoDB: ${url}`);
-console.log(`Database: ${dbName}`);
+MongoClient.connect(connectionString, { useUnifiedTopology: true })
+  .then((client) => {
+    console.log("Connected to Database");
+    const db = client.db("star-wars-quotes");
+    const quotesCollection = db.collection("quotes");
 
-//middleware
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use("/", router);
+    app.set("view engine", "ejs");
+    //middleware
+    app.use(bodyParser.urlencoded({ extended: true }));
+    app.use("/", router);
 
-// routes
-app.get("/", (req, res) => {
-  res.sendFile(
-    "/Users/nrloaner/Documents/CodingProjects/StarWarsQuotes" + "/index.html"
-  );
-});
+    // routes
+    app.get("/", (req, res) => {
+      db.collection("quotes")
+        .find()
+        .toArray()
+        .then((results) => {
+          res.render("index.ejs", { quotes: results });
+        })
+        .catch((error) => console.log(error));
+    });
 
-app.post("/quotes", (req, res) => {
-  console.log(req.body);
-});
+    app.post("/quotes", (req, res) => {
+      quotesCollection
+        .insertOne(req.body)
+        .then((result) => {
+          res.redirect("/");
+        })
+        .catch((error) => console.error(error));
+    });
 
-//listen
-app.listen(3000, () => {
-  console.log("listening on port 3000");
-});
+    //listen
+    app.listen(3000, () => {
+      console.log("listening on port 3000");
+    });
+  })
+  .catch((error) => console.error(error));
